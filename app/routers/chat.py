@@ -56,6 +56,9 @@ async def chat_process(request: Request, req_body: RequestProps, token_data: dic
 @router.post("/chat-process")
 async def chat_process(request: Request, req_body: RequestProps, token_data: dict = Depends(verify_token_and_balance),rate_limited: None = Depends(rate_limiter)):
     total_characters = 0
+    content = ""
+    status_code = 200
+
     try:
         response = await get_chat_response(
             message=req_body.prompt,
@@ -64,16 +67,15 @@ async def chat_process(request: Request, req_body: RequestProps, token_data: dic
             temperature=req_body.temperature,
             top_p=req_body.top_p,
         )
-        content = response.choices[0].message.content.strip()
         total_characters = response.usage.total_tokens
+
+        # Calculate the cost based on the number of characters in the response
+        cost = calculate_cost(total_characters)
+
+        # Deduct the cost from the user's balance
+        await update_user_balance(token_data["sub"], cost)
+
     except Exception as e:
         traceback.print_exc()
-        return JSONResponse(content={"error": "Error"}, status_code=500)
-
-    # Calculate the cost based on the number of characters in the response
-    cost = calculate_cost(total_characters)
-
-    # Deduct the cost from the user's balance
-    await update_user_balance(token_data["sub"], cost)
-
-    return JSONResponse(content={"response": content}, status_code=200)
+        response = JSONResponse(status_code=500, content={"message": "ai-server error."})
+    return response

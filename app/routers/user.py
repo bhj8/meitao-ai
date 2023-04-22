@@ -9,15 +9,16 @@ import asyncio
 
 router = APIRouter()
 
-@router.post("/register", response_class=JSONResponse)
+@app.post("/register", response_class=JSONResponse)
 async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     existing_user = await get_user_by_username(db, user.username)
     if existing_user:
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already exists",
+            content={
+                "code": 400,
+                "message": "Username already exists",
+            },
         )
     await create_user(db, user)
     return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "User registered successfully"})
-
-
