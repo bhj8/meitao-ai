@@ -12,7 +12,7 @@ async def get_user_by_username(db: AsyncSession, username: str)-> User:
 async def create_user(db: AsyncSession, user: UserCreate)-> User:
     return await crud_create_user(db, user)
 
-async def update_user_balance(db: AsyncSession, user_id: int, cost: float):
+async def update_user_balance(db: AsyncSession, user_id: int, cost: int):
     # Retrieve user data from the database using user_id
     user = await get_user_by_id(db, user_id)
     if user:

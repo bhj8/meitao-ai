@@ -5,7 +5,7 @@ from app.security.password import get_password_hash
 from tools.myutils import utils
 import asyncio
 from sqlalchemy.future import select
-
+import Globals
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> User:
     stmt = select(User).where(User.id == user_id)
@@ -29,7 +29,7 @@ async def create_user(db: AsyncSession, user: UserCreate) -> User:
         user_id = utils.generate_int32_digit_number()
         if not await get_user_by_id(db, user_id):
             break
-    db_user = User(id=user_id, username=user.username, hashed_password=hashed_password, balance=0)
+    db_user = User(id=user_id, username=user.username, hashed_password=hashed_password, balance=int(Globals.INITIAL_USER_BALANCE))
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
