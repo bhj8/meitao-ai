@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-class RequestProps(BaseModel):
+class chat_stream_RequestProps(BaseModel):
     prompt: str
     options: dict = None
     systemMessage: str = None

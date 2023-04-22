@@ -20,12 +20,17 @@ class ResponseStreamWrapper:
     async def response_stream(self, req_body, chat_reply_process, write_to_stream):
         try:
             async for content in chat_reply_process(
-                    message=req_body.prompt,
-                    last_context=req_body.options,
                     process=write_to_stream,
-                    system_message=req_body.systemMessage,
+                    model=req_body.model,
+                    messages=req_body.messages,                    
                     temperature=req_body.temperature,
                     top_p=req_body.top_p,
+                    n=req_body.n,
+                    stop=req_body.stop,
+                    max_tokens=req_body.max_tokens,
+                    presence_penalty=req_body.presence_penalty,
+                    frequency_penalty=req_body.frequency_penalty,
+                    logit_bias=req_body.logit_bias,
             ):
                 self.total_characters += len(content)
                 yield content

@@ -7,9 +7,9 @@ from app.schemas.user import UserCreate
 from services.user_operations import create_user, get_user_by_username
 import asyncio
 
-router = APIRouter()
+router = APIRouter(tags=["User"])
 
-@app.post("/register", response_class=JSONResponse)
+@router.post("/register", response_class=JSONResponse)
 async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     existing_user = await get_user_by_username(db, user.username)
     if existing_user:

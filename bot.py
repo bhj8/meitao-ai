@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from services.api_openai import *
 from tools.mylog import logger
 from app.routers.authentication import router as auth_router
-from app.routers.chat import router as chat_router
+from app.routers.chatgpt import router as chat_router
 from app.routers.user import router as user_router
 from app.db.database import Base, engine
 
