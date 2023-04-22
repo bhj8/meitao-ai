@@ -1,30 +1,36 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.schemas.user import UserCreate
 from app.security.password import get_password_hash
 from tools.myutils import utils
-# 查询用户根据ID
-def get_user_by_id(db: Session, user_id: int):
-    return db.query(User).filter(User.id == user_id).first()
+import asyncio
+from sqlalchemy.future import select
 
-# 查询用户根据用户名
-def get_user_by_username(db: Session, username: str):
-    return db.query(User).filter(User.username == username).first()
 
-def update_balance_in_database(db: Session, user_id: int, new_balance: float):
-    user = get_user_by_id(db, user_id)
+async def get_user_by_id(db: AsyncSession, user_id: int) -> User:
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+async def get_user_by_username(db: AsyncSession, username: str) -> User:
+    stmt = select(User).where(User.username == username)
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+async def update_balance_in_database(db: AsyncSession, user_id: int, new_balance: float):
+    user = await get_user_by_id(db, user_id)
     if user:
         user.balance = new_balance
-        db.commit()
+        await db.commit()
 
-def create_user(db: Session, user: UserCreate):
-    hashed_password = get_password_hash(user.password)
+async def create_user(db: AsyncSession, user: UserCreate) -> User:
+    hashed_password = await get_password_hash(user.password)
     while True:
-        user_id = utils.generate_12_digit_number()
-        if not get_user_by_id(db, user_id):
+        user_id = utils.generate_int32_digit_number()
+        if not await get_user_by_id(db, user_id):
             break
     db_user = User(id=user_id, username=user.username, hashed_password=hashed_password, balance=0)
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
     return db_user

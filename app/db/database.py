@@ -1,20 +1,24 @@
 from contextlib import contextmanager
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker,Session
+import Globals
 
-# Replace this with your database URL, for SQLite it should look like "sqlite:///your_database_file.db"
-DATABASE_URL = "sqlite:///user_data.db"
+# Replace this with your database URL
+DATABASE_URL = Globals.DATABASE_URL
 
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_async_engine(DATABASE_URL)
+async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 Base = declarative_base()
 
-@contextmanager
-def get_db() -> Session:
-    db = SessionLocal()
+async def get_db() -> AsyncSession:
+    db = async_session()
     try:
         yield db
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
     finally:
-        db.close()
+        await db.close()

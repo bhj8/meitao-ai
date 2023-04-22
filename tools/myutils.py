@@ -80,8 +80,8 @@ class utils :
         return SECRET_KEY
 
     @staticmethod
-    def generate_12_digit_number():
-        return random.randint(100000000000, 999999999999)
+    def generate_int32_digit_number():
+        return random.randint(1, 2**31 - 1)
 
 def to_text(value, encoding="utf-8") -> str:
     if isinstance(value, str):

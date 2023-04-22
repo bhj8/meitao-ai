@@ -17,3 +17,7 @@ def get_env_variable(var_name):
 
 
 OPENAI_API_KEY = get_env_variable("OPENAI_API_KEY")
+DATABASE_URL = get_env_variable("DATABASE_URL")
+SECRET_KEY = get_env_variable("SECRET_KEY")
+ALGORITHM = get_env_variable("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
