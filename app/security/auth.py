@@ -17,9 +17,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 async def verify_token(token: str = Depends(oauth2_scheme)):
     try:
+        print("Trying to decode token:", token)
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print("Decoded payload:", payload)
+
         return payload
-    except JWTError:
+    except JWTError as e:
+        print("JWTError:", e)
         raise HTTPException(status_code=401, detail="Invalid token")
 
 async def create_access_token(data: dict, expires_delta: timedelta = None):
@@ -29,12 +33,14 @@ async def create_access_token(data: dict, expires_delta: timedelta = None):
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
+    print("Token data to encode:", to_encode)
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    print("Generated token:", encoded_jwt)
     return encoded_jwt
 
 async def verify_token_and_balance(token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
     # 从令牌数据中获取用户名
-    user_id = token_data["sub"]
+    user_id = int(token_data["sub"])
 
     # 从数据库中查找与用户关联的帐户信息
     user = await get_user_by_id(db, user_id)
