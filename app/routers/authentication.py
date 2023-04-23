@@ -55,7 +55,7 @@ async def verify_token_endpoint(request_data: VerifyTokenRequest):
             content={"message": "Invalid token"}
         )
     
-@router.post("/session")
+@router.post("/api/session")
 async def get_session():
     # 你可以根据实际情况对这里的返回数据进行修改
     return {"auth": True, "model": "ChatGPTAPI"}
