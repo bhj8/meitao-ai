@@ -16,22 +16,24 @@ async def register_user(user: UserCreate, request: Request, db: AsyncSession = D
         existing_user = await get_user_by_username(db, user.username)
         if existing_user:
             return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                content={
-                    "code": 400,
-                    "message": "Username already exists",
-                },
+                #status_code=status.HTTP_200_OK,
+                "用户名已存在"
+                # content={
+                #     "status": 'string',
+                #     "message": "Username already exists",
+                # },
             )
         await create_user(db, user)
-        return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "User registered successfully"})
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"status": 'Success',"message": "User registered successfully"})
     except ValidationError as e:
         # Customize the error response here
         error_detail = e.errors()[0]
         error_message = error_detail["msg"]
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content={
-                "code": 422,
-                "message": error_message,
-            },
+            #status_code=status.HTTP_200_OK,
+            "注册错误"
+            # content={
+            #     "status": 'string',
+            #     "message": error_message,
+            # },
         )

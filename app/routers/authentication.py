@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from app.models.token import Token, VerifyTokenRequest
+from app.schemas.session import SessionResponse
 from app.security.auth import create_access_token, pwd_context, ACCESS_TOKEN_EXPIRE_MINUTES, verify_token
 from services.user_operations import get_user_by_username
 from app.db.database import get_db
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
 
 router = APIRouter(tags=["User"])
+
 
 async def authenticate_user(db, username: str, password: str):
     user = await get_user_by_username(db, username)
@@ -55,7 +57,50 @@ async def verify_token_endpoint(request_data: VerifyTokenRequest):
             content={"message": "Invalid token"}
         )
     
-@router.post("/api/session")
-async def get_session():
-    # 你可以根据实际情况对这里的返回数据进行修改
-    return {"auth": True, "model": "ChatGPTAPI"}
+
+
+# @router.post("/session", response_model=SessionResponse)
+# async def session() -> SessionResponse:
+#     try:
+#         data = {
+#             "auth": False,
+#             "model": "ChatGPTUnofficialProxyAPI",
+#         }
+#         return JSONResponse(
+#             status_code=status.HTTP_200_OK,
+#             content=data
+#         )
+#     except Exception as error:
+#         return JSONResponse(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             content={"message": "server down"}
+#         )
+
+# from pydantic import BaseModel
+# class SessionResponse(BaseModel):
+#     auth: bool
+#     model: str
+
+# def is_not_empty_string(s: str) -> bool:
+#     return bool(s and s.strip())
+
+# @router.post("/session", response_model=SessionResponse)
+# async def session() -> SessionResponse:
+#     try:
+#         has_auth = True
+
+#         data = {
+#             "auth": has_auth,
+#             "model": "ChatGPTUnofficialProxyAPI",
+#         }
+
+#         return JSONResponse(
+#             status_code=status.HTTP_200_OK,
+#             content=data
+#         )
+
+#     except Exception as error:
+#         return JSONResponse(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             content={"message": "server down"}
+#         )
