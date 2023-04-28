@@ -21,7 +21,7 @@ class chat_RequestProps(BaseModel):
     
     
 class chat_stream_RequestProps(BaseModel):
-    model: str
+    model: str = "gpt-3.5-turbo"
     messages: List[dict]
     temperature: Optional[float] = 1.0
     top_p: Optional[float] = 1.0
