@@ -31,3 +31,10 @@ class chat_stream_RequestProps(BaseModel):
     presence_penalty: Optional[float] = 0.0
     frequency_penalty: Optional[float] = 0.0
     logit_bias: Optional[dict] = None
+    
+    
+
+class chat_FastRequestProps(BaseModel):
+    system_message: str
+    messages: str
+    chat_message_id: int

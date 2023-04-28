@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.chat_session import ChatSession
 from app.models.user import User
 from app.schemas.user import UserCreate
 from app.security.password import get_password_hash
@@ -6,6 +7,9 @@ from tools.myutils import utils
 import asyncio
 from sqlalchemy.future import select
 import Globals
+
+from app.models.chat_message import ChatMessage
+from app.schemas.chat_message import ChatMessageCreate
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> User:
     stmt = select(User).where(User.id == user_id)
@@ -34,3 +38,57 @@ async def create_user(db: AsyncSession, user: UserCreate) -> User:
     await db.commit()
     await db.refresh(db_user)
     return db_user
+
+
+
+
+# 创建一个聊天会话，返回创建的聊天会话
+async def create_chat_session(db: AsyncSession, user_id: int) -> ChatSession:
+    db_chat_session = ChatSession(user_id=user_id)
+    db.add(db_chat_session)
+    await db.commit()
+    await db.refresh(db_chat_session)
+    return db_chat_session
+
+# 创建一个聊天记录，返回创建的聊天记录
+async def create_chat_message(db: AsyncSession, chat_message: ChatMessageCreate, chat_session_id: int) -> ChatMessage:
+    db_chat_message = ChatMessage(chat_session_id=chat_session_id, role=chat_message.role, content=chat_message.content)
+    db.add(db_chat_message)
+    await db.commit()
+    await db.refresh(db_chat_message)
+    return db_chat_message
+
+# 获取某个用户的所有聊天会话
+async def get_chat_sessions_by_user_id(db: AsyncSession, user_id: int) -> list[ChatSession]:
+    stmt = select(ChatSession).where(ChatSession.user_id == user_id)
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+# 获取某个聊天会话的所有聊天记录
+async def get_chat_messages_by_chat_session_id(db: AsyncSession, chat_session_id: int) -> list[ChatMessage]:
+    stmt = select(ChatMessage).where(ChatMessage.chat_session_id == chat_session_id).order_by(ChatMessage.timestamp.desc())
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+# 获取某个聊天记录
+async def get_chat_message_by_user_id_and_message_id(db: AsyncSession, chat_session_id: int, chat_message_id: int) -> ChatMessage:
+    stmt = select(ChatMessage).where(ChatMessage.chat_session_id == chat_session_id, ChatMessage.id == chat_message_id)
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+# 删除某个聊天记录
+async def delete_chat_message(db: AsyncSession, chat_session_id: int, chat_message_id: int) -> None:
+    chat_message = await get_chat_message_by_user_id_and_message_id(db, chat_session_id, chat_message_id)
+    
+    if chat_message is not None:
+        await db.delete(chat_message)
+        await db.commit()
+
+# 删除某个聊天会话的所有聊天记录
+async def delete_all_chat_messages(db: AsyncSession, chat_session_id: int) -> None:
+    chat_messages = await get_chat_messages_by_chat_session_id(db, chat_session_id)
+    
+    if chat_messages:
+        for chat_message in chat_messages:
+            await db.delete(chat_message)
+        await db.commit()

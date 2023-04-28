@@ -4,6 +4,7 @@ from tools.mylog import logger
 from app.routers.authentication import router as auth_router
 from app.routers.chatgpt import router as chat_router
 from app.routers.user import router as user_router
+from app.routers.chatgpt_fast import router as chatgpt_fast_router
 from app.db.database import Base, engine
 
 # 创建所有数据表
@@ -22,6 +23,7 @@ async def on_startup():
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(user_router)
+app.include_router(chatgpt_fast_router)
 
 if __name__ == "__main__":
     import uvicorn
@@ -32,4 +34,5 @@ if __name__ == "__main__":
     logger.debug("Host: %s" % host)
     logger.debug("Port: %s" % port)
     logger.debug("Log level: %s" % log_info)
-    uvicorn.run("bot:app", host=host, port=443, log_level="info", ssl_keyfile="/etc/letsencrypt/live/www.xiao-hui.com/privkey.pem", ssl_certfile="/etc/letsencrypt/live/www.xiao-hui.com/fullchain.pem")
+    uvicorn.run("bot:app", host=host, port=3000, log_level="info")
+    # uvicorn.run("bot:app", host=host, port=port, log_level="info", ssl_keyfile="/etc/letsencrypt/live/www.xiao-hui.com/privkey.pem", ssl_certfile="/etc/letsencrypt/live/www.xiao-hui.com/fullchain.pem")

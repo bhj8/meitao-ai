@@ -10,3 +10,5 @@ Utils==1.0.1
 uvicorn==0.21.1
 asyncpg
 sqlalchemy
+alembic
+aiosqlite

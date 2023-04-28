@@ -2,7 +2,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from app.models.token import Token, VerifyTokenRequest
+from app.schemas.token import Token, VerifyTokenRequest
 from app.schemas.session import SessionResponse
 from app.security.auth import create_access_token, pwd_context, ACCESS_TOKEN_EXPIRE_MINUTES, verify_token
 from services.user_operations import get_user_by_username

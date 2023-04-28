@@ -4,8 +4,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import Globals
 
-# Replace this with your database URL
-DATABASE_URL = Globals.DATABASE_URL
+# Replace this with your SQLite database URL
+# DATABASE_URL = global.DATABASE_URL
+DATABASE_URL = "sqlite+aiosqlite:///database.db"
 
 engine = create_async_engine(DATABASE_URL)
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
