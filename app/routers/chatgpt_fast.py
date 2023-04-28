@@ -1,7 +1,7 @@
 from discord import HTTPException
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse, JSONResponse
-from app.db.crud import get_chat_message_by_user_id_and_message_id, get_chat_messages_by_chat_session_id, get_chat_messages_by_user_id, get_chat_sessions_by_user_id
+from app.db.crud import  get_chat_messages_by_chat_session_id, get_chat_sessions_by_user_id
 from app.routers.chatgpt import chat_process
 from app.schemas.chatgpt import chat_FastRequestProps, chat_stream_RequestProps
 from app.security.auth import verify_token_and_balance
@@ -50,22 +50,22 @@ async def chat_process_fast(
     
     user_id = int(token_data["sub"])
     try:
-        messages = await construct_messages_from_chat_history(db, user_id, req_body.chat_message_id, req_body.system_message, req_body.messages)
+        messages = await construct_messages_from_chat_history(db, user_id, req_body.chat_session_id, req_body.system_message, req_body.messages)
         full_request = chat_RequestProps(
             messages=messages,
-            model="text-davinci-002",
+            model="gpt-3.5-turbo",
             temperature=0.7,
             top_p=1,
             n=1,
             stop=None,
-            max_tokens=150,
+            max_tokens=1000,
             presence_penalty=0,
             frequency_penalty=0,
             logit_bias=None,
         )
     except Exception as e:
         traceback.print_exc()
-        return JSONResponse(status_code=500, content={"message": str(e)})
+        return JSONResponse(status_code=400, content={"message": str(e)})
     return await chat_process(full_request, db, token_data, rate_limited)
 
 async def construct_messages_from_chat_history(db: AsyncSession, user_id: int, chat_session_id: int, system_message: str, input_message: str) -> List[Dict[str, str]]:
@@ -101,3 +101,36 @@ async def construct_messages_from_chat_history(db: AsyncSession, user_id: int, c
     messages.append({"role": "user", "content": input_message})
 
     return messages
+
+
+
+
+@router.post("/chatgpt_fast/chat-stream-text")
+async def fast_chat_process_stream(
+    req_body: chat_FastRequestProps,
+    db: AsyncSession = Depends(get_db),
+    token_data: dict = Depends(verify_token_and_balance),
+    rate_limited: None = Depends(rate_limiter),
+):
+
+    user_id = int(token_data["sub"])
+
+    try:
+        messages = await construct_messages_from_chat_history(db, user_id, req_body.chat_session_id, req_body.system_message, req_body.messages)
+        full_request = chat_RequestProps(
+            messages=messages,
+            model="gpt-3.5-turbo",
+            temperature=0.7,
+            top_p=1,
+            n=1,
+            stop=None,
+            max_tokens=1000,
+            presence_penalty=0,
+            frequency_penalty=0,
+            logit_bias=None,
+        )
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse(status_code=400, content={"message": str(e)})
+
+    return await chat_process(full_request, db, token_data, rate_limited)

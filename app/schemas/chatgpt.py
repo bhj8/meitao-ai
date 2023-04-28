@@ -37,4 +37,4 @@ class chat_stream_RequestProps(BaseModel):
 class chat_FastRequestProps(BaseModel):
     system_message: str
     messages: str
-    chat_message_id: int
+    chat_session_id: int
