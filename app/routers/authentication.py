@@ -2,6 +2,7 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from app.error_codes.error_codes import ErrorCode, ErrorMessage
 from app.models.token import Token, VerifyTokenRequest
 from app.schemas.session import SessionResponse
 from app.security.auth import create_access_token, pwd_context, ACCESS_TOKEN_EXPIRE_MINUTES, verify_token
@@ -29,17 +30,16 @@ async def login_access_token(
     user = await authenticate_user(db, form_data.username, form_data.password)
     if not user:
         return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
             content={
-                "message": "Incorrect username or password",
-                "headers": {"WWW-Authenticate": "Bearer"},
+                    "status": ErrorCode.PASSWORD_NOT_VALID,
+                    "message": ErrorMessage.PASSWORD_NOT_VALID,
             }
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = await create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
-    return JSONResponse(content={"access_token": access_token, "token_type": "bearer"})
+    return JSONResponse(content={"status": "Success","data":{ "access_token": access_token, "token_type": "bearer"}})
 
 @router.post("/verify")
 async def verify_token_endpoint(request_data: VerifyTokenRequest):
@@ -47,14 +47,16 @@ async def verify_token_endpoint(request_data: VerifyTokenRequest):
     is_token_valid = await verify_token(token)
 
     if is_token_valid:
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"message": "Token is valid"}
+        return JSONResponse(            
+            content={
+                "status": "Success",
+                "message": "Token is valid",},
         )
     else:
         return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"message": "Invalid token"}
+            content={
+                "status": ErrorCode.TOKEN_INVALID,
+                "message": ErrorCode.TOKEN_INVALID,},
         )
     
 

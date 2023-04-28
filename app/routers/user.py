@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
 from app.schemas.user import UserCreate
 from services.user_operations import create_user, get_user_by_username
-import asyncio
+from app.error_codes.error_codes import ErrorCode, ErrorMessage
 
 router = APIRouter(tags=["User"])
 
@@ -16,24 +16,22 @@ async def register_user(user: UserCreate, request: Request, db: AsyncSession = D
         existing_user = await get_user_by_username(db, user.username)
         if existing_user:
             return JSONResponse(
-                #status_code=status.HTTP_200_OK,
-                "用户名已存在"
-                # content={
-                #     "status": 'string',
-                #     "message": "Username already exists",
-                # },
+                # status_code=status.HTTP_200_OK,
+                content={
+                    "status": ErrorCode.USER_ALREADY_EXISTS,
+                    "message": ErrorMessage.USER_ALREADY_EXISTS,
+                },
             )
         await create_user(db, user)
-        return JSONResponse(status_code=status.HTTP_200_OK, content={"status": 'Success',"message": "User registered successfully"})
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"status": 'Success'})
     except ValidationError as e:
         # Customize the error response here
         error_detail = e.errors()[0]
         error_message = error_detail["msg"]
         return JSONResponse(
-            #status_code=status.HTTP_200_OK,
-            "注册错误"
-            # content={
-            #     "status": 'string',
-            #     "message": error_message,
-            # },
+            # status_code=status.HTTP_200_OK,
+            content={
+                "status": ErrorCode.INVALID_INPUT,
+                "message": ErrorMessage.INVALID_INPUT,
+            },
         )

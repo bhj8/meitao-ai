@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse, JSONResponse
-from app.models.chat import chat_stream_RequestProps
+from app.schemas.chatgpt import chat_stream_RequestProps
 from app.security.auth import verify_token_and_balance
 from services.billing import calculate_cost
 from services.user_operations import update_user_balance
