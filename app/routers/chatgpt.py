@@ -4,7 +4,7 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from app.db.crud import create_chat_message
 from app.schemas.chat_message import ChatMessageCreate
 from app.schemas.chatgpt import chat_stream_RequestProps
-from app.security.auth import verify_token_and_balance
+from app.security.auth import verify_token_and_membership
 from services.billing import calculate_cost
 from services.user_operations import update_user_balance
 from app.security.rate_limiter import rate_limiter
@@ -23,7 +23,7 @@ router = APIRouter(tags=["ChatGPT"])
 async def moderation_endpoint(
     req_body: Moderation_RequestProps,
     db: AsyncSession = Depends(get_db),
-    token_data: dict = Depends(verify_token_and_balance),
+    token_data: dict = Depends(verify_token_and_membership),
     rate_limited: None = Depends(rate_limiter),
 ):
     message = req_body.message
@@ -43,7 +43,7 @@ async def moderation_endpoint(
 async def chat_process(
     req_body: chat_RequestProps,
     db: AsyncSession = Depends(get_db),
-    token_data: dict = Depends(verify_token_and_balance),
+    token_data: dict = Depends(verify_token_and_membership),
     rate_limited: None = Depends(rate_limiter),
 ):
     total_characters = 0
@@ -77,7 +77,7 @@ async def chat_process(
 
 
 @router.post("/chatgpt/chat-stream-text")
-async def chat_process_stream( req_body: chat_stream_RequestProps, db: AsyncSession = Depends(get_db), token_data: dict = Depends(verify_token_and_balance), rate_limited: None = Depends(rate_limiter)):
+async def chat_process_stream( req_body: chat_stream_RequestProps, db: AsyncSession = Depends(get_db), token_data: dict = Depends(verify_token_and_membership), rate_limited: None = Depends(rate_limiter)):
     user_id = int(token_data["sub"])
 
     async with ResponseStreamWrapper(db, user_id) as stream_wrapper:

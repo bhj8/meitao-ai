@@ -18,6 +18,9 @@ class ErrorCode:
     SERVICE_UNAVAILABLE = 1017
     INVALID_INPUT = 1018
     IP_ALREADY_REGISTERED =1019
+    #不是会员，无权使用
+    NOT_MEMBER = 1020
+    
     # ... 其他错误码
 
 
@@ -41,4 +44,5 @@ class ErrorMessage:
     SERVICE_UNAVAILABLE = "Service unavailable"
     INVALID_INPUT = "Invalid input"
     IP_ALREADY_REGISTERED = "IP already registered"
+    NOT_MEMBER="您没有订阅会员，无权使用。请订阅后再试"
     # ... 其他错误消息

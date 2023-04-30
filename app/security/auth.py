@@ -39,7 +39,9 @@ async def create_access_token(data: dict, expires_delta: timedelta = None):
     print("Generated token:", encoded_jwt)
     return encoded_jwt
 
-async def verify_token_and_balance(token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
+
+
+async def verify_token_and_membership(token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
     # 从令牌数据中获取用户名
     user_id = int(token_data["sub"])
 
@@ -49,11 +51,31 @@ async def verify_token_and_balance(token_data: dict = Depends(verify_token), db:
     if user is None:
         raise HTTPException(status_code=401, detail={"status": "Unauthorized", "detail": "Invalid token"})
 
-    # 检查余额是否充足
-    # minimum_balance_required = 10  # 您可以根据需求设置所需的最低余额
-    # if user.balance < minimum_balance_required:
-    #     raise HTTPException(
-    #         status_code=402, detail="Insufficient balance"
-    #     )
+    # 检查会员是否在有效期内
+    current_time = datetime.utcnow()
+    if user.membership_expiration < current_time:
+        raise HTTPException(
+            status_code=1020, detail={"status": "Forbidden", "detail": "Membership expired"}
+        )
 
     return token_data
+
+
+# async def verify_token_and_balance(token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
+#     # 从令牌数据中获取用户名
+#     user_id = int(token_data["sub"])
+
+#     # 从数据库中查找与用户关联的帐户信息
+#     user = await get_user_by_id(db, user_id)
+
+#     if user is None:
+#         raise HTTPException(status_code=401, detail={"status": "Unauthorized", "detail": "Invalid token"})
+
+#     # 检查余额是否充足
+#     # minimum_balance_required = 10  # 您可以根据需求设置所需的最低余额
+#     # if user.balance < minimum_balance_required:
+#     #     raise HTTPException(
+#     #         status_code=402, detail="Insufficient balance"
+#     #     )
+
+#     return token_data

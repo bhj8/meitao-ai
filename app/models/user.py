@@ -1,7 +1,8 @@
 # user.py (updated)
-from sqlalchemy import Column, Integer, String
-from app.db.database import Base
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
+from datetime import datetime
+from app.db.database import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -10,6 +11,24 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     balance = Column(Integer)
     hashed_password = Column(String)
+
+    # 积分余额，默认值为0
+    points_balance = Column(Integer, default=0)
+
+    # 会员到期时间，默认值为注册时间
+    membership_expiration = Column(DateTime, default=datetime.utcnow)
+
+    # 注册时间，默认值为当前UTC时间
+    registration_time = Column(DateTime, default=datetime.utcnow)
+
+    # 已经使用过的卡密，采用JSON类型，默认为空列表
+    used_card_codes = Column(JSON, default=list)
+
+    # 已经邀请过的用户ID，采用JSON类型，默认为空列表
+    invited_user_ids = Column(JSON, default=list)
+
+    # 一个灵活的存储信息的字典，以便未来在不迁移数据库的前提下，快速的存一些临时的资料
+    flexible_data = Column(JSON, default=dict)
 
     # Create a relationship to the ChatSession model
     chat_sessions = relationship("ChatSession", back_populates="user")

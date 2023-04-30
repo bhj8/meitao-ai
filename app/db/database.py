@@ -2,7 +2,6 @@ from contextlib import contextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-import Globals
 
 # Replace this with your SQLite database URL
 # DATABASE_URL = global.DATABASE_URL

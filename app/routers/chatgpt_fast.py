@@ -5,7 +5,7 @@ from app.db.crud import  create_chat_message, create_chat_session, get_chat_mess
 from app.routers.chatgpt import chat_process,chat_process_stream
 from app.schemas.chat_message import ChatMessageCreate
 from app.schemas.chatgpt import chat_FastRequestProps, chat_stream_RequestProps
-from app.security.auth import verify_token, verify_token_and_balance
+from app.security.auth import verify_token, verify_token_and_membership
 from services.billing import calculate_cost
 from services.user_operations import update_user_balance
 from app.security.rate_limiter import rate_limiter
@@ -42,7 +42,7 @@ async def moderation_endpoint(
 async def fast_chat_process_stream(
     req_body: chat_FastRequestProps,
     db: AsyncSession = Depends(get_db),
-    token_data: dict = Depends(verify_token_and_balance),
+    token_data: dict = Depends(verify_token_and_membership),
     rate_limited: None = Depends(rate_limiter),
 ):
 
@@ -79,7 +79,7 @@ from typing import List, Dict
 async def chat_process_fast(
     req_body: chat_FastRequestProps,
     db: AsyncSession = Depends(get_db),
-    token_data: dict = Depends(verify_token_and_balance),
+    token_data: dict = Depends(verify_token_and_membership),
     rate_limited: None = Depends(rate_limiter),
 ):
     

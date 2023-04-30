@@ -4,7 +4,7 @@ from app.db.crud import (
     get_chat_session_by_user_id_and_chat_session_id
 )
 from app.db.database import get_db
-from app.security.auth import verify_token_and_balance, verify_token
+from app.security.auth import verify_token_and_membership, verify_token
 from app.security.rate_limiter import rate_limiter
 from sqlalchemy.ext.asyncio import AsyncSession
 

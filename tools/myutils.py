@@ -69,11 +69,11 @@ class utils :
         return unique_time_string
 
     @staticmethod
-    def generate_random_string(length=32):
+    def generate_random_secret_key_string(length=32):
         import secrets
         import base64
 
-        def generate_secret_key(length: int = 32) -> str:
+        def generate_secret_key(length: length) -> str:
                 return base64.urlsafe_b64encode(secrets.token_bytes(length)).decode("utf-8")
 
         SECRET_KEY = generate_secret_key(length)
@@ -82,6 +82,12 @@ class utils :
     @staticmethod
     def generate_int32_digit_number():
         return random.randint(1, 2**31 - 1)
+    
+    @staticmethod
+    def generate_alphanumeric_string(length: int) -> str:
+        chars = string.ascii_uppercase + string.ascii_lowercase + string.digits
+        return ''.join(random.choice(chars) for _ in range(length))
+
 
 def to_text(value, encoding="utf-8") -> str:
     if isinstance(value, str):
