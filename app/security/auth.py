@@ -5,6 +5,7 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 import Globals
+from fastapi.responses import JSONResponse
 
 from app.db.database import get_db
 from services.user_operations import get_user_by_id
@@ -24,7 +25,7 @@ async def verify_token(token: str = Depends(oauth2_scheme)):
         return payload
     except JWTError as e:
         print("JWTError:", e)
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail={"status": "Unauthorized", "detail": "Invalid token"})
 
 async def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
@@ -46,13 +47,13 @@ async def verify_token_and_balance(token_data: dict = Depends(verify_token), db:
     user = await get_user_by_id(db, user_id)
 
     if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=401, detail={"status": "Unauthorized", "detail": "Invalid token"})
 
     # 检查余额是否充足
-    minimum_balance_required = 10  # 您可以根据需求设置所需的最低余额
-    if user.balance < minimum_balance_required:
-        raise HTTPException(
-            status_code=402, detail="Insufficient balance"
-        )
+    # minimum_balance_required = 10  # 您可以根据需求设置所需的最低余额
+    # if user.balance < minimum_balance_required:
+    #     raise HTTPException(
+    #         status_code=402, detail="Insufficient balance"
+    #     )
 
     return token_data

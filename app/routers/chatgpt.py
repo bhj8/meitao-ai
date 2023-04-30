@@ -1,5 +1,8 @@
+import json
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse, JSONResponse
+from app.db.crud import create_chat_message
+from app.schemas.chat_message import ChatMessageCreate
 from app.schemas.chatgpt import chat_stream_RequestProps
 from app.security.auth import verify_token_and_balance
 from services.billing import calculate_cost
@@ -28,8 +31,9 @@ async def moderation_endpoint(
         return JSONResponse(status_code=400, content={"message": "Message cannot be empty."})
 
     try:
-        response = await get_moderation(message)
+        response = await get_moderation(input=message)
     except Exception as e:
+        traceback.print_exc()
         return JSONResponse(status_code=500, content={"message": str(e)})
 
     return response
@@ -57,7 +61,6 @@ async def chat_process(
             max_tokens=req_body.max_tokens,
             presence_penalty=req_body.presence_penalty,
             frequency_penalty=req_body.frequency_penalty,
-            logit_bias=req_body.logit_bias,
         )
         total_characters = response.usage.total_tokens
 
@@ -74,7 +77,7 @@ async def chat_process(
 
 
 @router.post("/chatgpt/chat-stream-text")
-async def chat_process( req_body: chat_stream_RequestProps, db: AsyncSession = Depends(get_db), token_data: dict = Depends(verify_token_and_balance), rate_limited: None = Depends(rate_limiter)):
+async def chat_process_stream( req_body: chat_stream_RequestProps, db: AsyncSession = Depends(get_db), token_data: dict = Depends(verify_token_and_balance), rate_limited: None = Depends(rate_limiter)):
     user_id = int(token_data["sub"])
 
     async with ResponseStreamWrapper(db, user_id) as stream_wrapper:
@@ -82,15 +85,37 @@ async def chat_process( req_body: chat_stream_RequestProps, db: AsyncSession = D
 
 
 async def chat_reply_process(process, **kwargs):
+    chat_session_id = kwargs.pop("chat_session_id", None)
+    user_id = kwargs.pop("user_id", None)
+    user_message = kwargs.pop("user_message", None)
+    db=kwargs.pop("db", None)
     response_generator = await get_chat_response_stream(**kwargs)
 
     response_text = ""
     async for chunk in response_generator:  # Iterate through chunks in the response
         content = chunk["choices"][0].get("delta", {}).get("content")
         if content is not None:
-            # Pass the content to the process function
-            response_text = await process(content)
-            yield response_text
+            # Pass the content to the process function and accumulate the response text
+            response_text += await process(content)
+            
+            # Create a JSON object with the desired format
+            response_json = {
+                "messages": response_text,
+                "chat_session_id": chat_session_id,
+                "id": chunk.get("id")
+            }
+            
+            # Yield the JSON object as a string followed by a newline character
+            yield json.dumps(response_json) + "\n"
+    
+    user_message = ChatMessageCreate(user_id=user_id,role="user",content=user_message)
+    await create_chat_message(db, user_message,chat_session_id,)
+    
+    assistant_message = response_text
+    assistant_message = ChatMessageCreate(user_id=user_id,role="assistant",content=assistant_message)
+    await create_chat_message(db, assistant_message,chat_session_id,)
+    
+
 
 
 async def write_to_stream(content: str):

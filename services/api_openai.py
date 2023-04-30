@@ -47,6 +47,8 @@ async def get_chat_response(**kwargs):
 
 @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=3))
 async def get_chat_response_stream(**kwargs):
+    messages = kwargs.get("messages")
+    print(messages)
     response = await openai.ChatCompletion.acreate(stream=True, **kwargs)
     return response
     # completions = await openai.ChatCompletion.acreate(

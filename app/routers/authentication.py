@@ -31,15 +31,25 @@ async def login_access_token(
     if not user:
         return JSONResponse(
             content={
-                    "status": ErrorCode.PASSWORD_NOT_VALID,
-                    "message": ErrorMessage.PASSWORD_NOT_VALID,
+                    "status": ErrorCode.INVALID_CREDENTIALS,
+                    "message": ErrorMessage.INVALID_CREDENTIALS,
             }
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = await create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
-    return JSONResponse(content={"status": "Success","data":{ "access_token": access_token, "token_type": "bearer"}})
+    return JSONResponse(
+        content={
+            "status": "Success",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # 转换为秒
+            # "scope": "your_scope",  # 可选，如果有定义范围的话
+        },
+        headers={"Content-Type": "application/json;charset=utf-8"},
+    )
+
 
 @router.post("/verify")
 async def verify_token_endpoint(request_data: VerifyTokenRequest):
@@ -55,7 +65,7 @@ async def verify_token_endpoint(request_data: VerifyTokenRequest):
     else:
         return JSONResponse(
             content={
-                "status": ErrorCode.TOKEN_INVALID,
+                "status": 'Unauthorized',
                 "message": ErrorCode.TOKEN_INVALID,},
         )
     

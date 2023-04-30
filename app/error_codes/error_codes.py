@@ -16,7 +16,8 @@ class ErrorCode:
     TOO_MANY_REQUESTS = 1015
     INTERNAL_SERVER_ERROR = 1016
     SERVICE_UNAVAILABLE = 1017
-    INVALID_INPUT = 1018    
+    INVALID_INPUT = 1018
+    IP_ALREADY_REGISTERED =1019
     # ... 其他错误码
 
 
@@ -39,4 +40,5 @@ class ErrorMessage:
     INTERNAL_SERVER_ERROR = "Internal server error"
     SERVICE_UNAVAILABLE = "Service unavailable"
     INVALID_INPUT = "Invalid input"
+    IP_ALREADY_REGISTERED = "IP already registered"
     # ... 其他错误消息

@@ -1,5 +1,5 @@
-# chat_message.py (updated)
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, UniqueConstraint
+# chat_message.py (updated)
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 import datetime
@@ -16,4 +16,4 @@ class ChatMessage(Base):
     # Update the relationship to the ChatSession model
     chat_session = relationship("ChatSession", back_populates="chat_messages")
 
-    __table_args__ = (UniqueConstraint('role', 'content', name='unique_role_content'),)
+    # __table_args__ = (UniqueConstraint('role', 'content', name='unique_role_content'),)
