@@ -65,8 +65,16 @@ async def update_membership_expiration_with_activation_code(db: AsyncSession, us
 
     # 检查激活码是否存在且可用
     if code and code.usage_limit > 0:
-        # 更新会员到期时间
-        user.membership_expiration += datetime.timedelta(hours=code.duration_in_hours)
+        # 获取当前时间
+        now = datetime.datetime.utcnow()
+
+        # 检查会员订阅是否已过期
+        if user.membership_expiration < now:
+            # 从当前时间开始计算新的到期时间
+            user.membership_expiration = now + datetime.timedelta(hours=code.duration_in_hours)
+        else:
+            # 从原到期时间开始计算新的到期时间
+            user.membership_expiration += datetime.timedelta(hours=code.duration_in_hours)
 
         # 更新激活码的使用次数
         code.usage_limit -= 1
@@ -78,10 +86,6 @@ async def update_membership_expiration_with_activation_code(db: AsyncSession, us
         await db.commit()
     else:
         raise ValueError("Invalid activation code.")
-
-
-
-
 
 
 
@@ -216,14 +220,18 @@ async def get_chat_session_by_user_id_and_chat_session_id(db: AsyncSession, user
 from tools.myutils import utils
 
 # 创建一个新的激活码
-async def create_activation_code(db: AsyncSession, duration: int, usage_limit: int):
+async def create_activation_code(db: AsyncSession, duration_in_hours: int, usage_limit: int):
+    '''
+    密的属性，激活后增加的时长(按小时为单位）
+    
+    '''
     # 生成一个长度为10的大小写字母和数字组成的随机字符串
     activation_code_str = utils.generate_alphanumeric_string(10)
 
     # 创建一个新的激活码对象
     new_activation_code = ActivationCode(
         code=activation_code_str,
-        duration=duration,
+        duration_in_hours=duration_in_hours,
         usage_limit=usage_limit
     )
 
@@ -232,4 +240,4 @@ async def create_activation_code(db: AsyncSession, duration: int, usage_limit: i
     await db.commit()
     await db.refresh(new_activation_code)
 
-    return new_activation_code
+    return [activation_code_str,duration_in_hours,usage_limit]

@@ -1,9 +1,9 @@
 import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.crud import get_flexible_data, get_invited_user_ids, get_membership_expiration, get_used_card_codes, update_membership_expiration
+from app.db.crud import get_flexible_data, get_invited_user_ids, get_membership_expiration, get_used_card_codes, update_membership_expiration, update_membership_expiration_with_activation_code
 
 from app.db.database import get_db
 from app.schemas.user import UserCreate
@@ -93,3 +93,25 @@ async def get_user_invited_ids(token_data: dict = Depends(verify_token), db: Asy
     user_id = int(token_data["sub"])
     invited_ids = await get_invited_user_ids(db, user_id)
     return JSONResponse(content={"status": "Success", "invited_user_ids": invited_ids})
+
+
+
+class UpdateMembershipExpirationRequest(BaseModel):
+    activation_code: str
+
+
+# 根据卡密修改用户订阅时间
+@router.post("/update_membership_expiration", response_class=JSONResponse)
+async def update_membership_expiration_endpoint(
+    request_data: UpdateMembershipExpirationRequest,
+    token_data: dict = Depends(verify_token),
+    db: AsyncSession = Depends(get_db),
+):
+    user_id = int(token_data["sub"])
+    activation_code = request_data.activation_code
+
+    try:
+        await update_membership_expiration_with_activation_code(db, user_id, activation_code)
+        return JSONResponse(content={"status": "Success", "message": "Membership expiration updated successfully."})
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid activation code.")
