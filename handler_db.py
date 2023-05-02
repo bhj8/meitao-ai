@@ -11,7 +11,7 @@ async def create_tables():
 # 主函数
 async def main():
     async with AsyncSession(engine) as db:
-        for _ in range(10):
+        for _ in range(50):
             result =  await create_activation_code(db, "24", 1)
             print(result[0])
 

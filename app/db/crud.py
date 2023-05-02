@@ -13,33 +13,88 @@ import Globals
 from app.models.chat_message import ChatMessage
 from app.schemas.chat_message import ChatMessageCreate
 
+# 根据用户 ID 获取用户
 async def get_user_by_id(db: AsyncSession, user_id: int) -> User:
     stmt = select(User).where(User.id == user_id)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
+# 根据用户名获取用户
 async def get_user_by_username(db: AsyncSession, username: str) -> User:
     stmt = select(User).where(User.username == username)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
+# 更新数据库中的余额
 async def update_balance_in_database(db: AsyncSession, user_id: int, new_balance: float):
     user = await get_user_by_id(db, user_id)
     if user:
         user.balance = new_balance
         await db.commit()
 
+# 根据用户 ID 增加用户余额
+async def add_user_balance_by_id(db: AsyncSession, user_id: int, amount: float):
+    user = await get_user_by_id(db, user_id)
+    if user:
+        user.balance += amount
+        await db.commit()
+        
+# 创建用户
 async def create_user(db: AsyncSession, user: UserCreate) -> User:
     hashed_password = await get_password_hash(user.password)
     while True:
-        user_id = utils.generate_int32_digit_number()
+        user_id = utils. generate_random_digit_number(9)
         if not await get_user_by_id(db, user_id):
             break
-    db_user = User(id=user_id, username=user.username, hashed_password=hashed_password, balance=int(Globals.INITIAL_USER_BALANCE))
+    db_user = User(id=user_id, username=user.username, hashed_password=hashed_password, balance=int(Globals.INITIAL_USER_BALANCE), invitee_id=user.invitee_id)
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
     return db_user
+
+# 根据用户 ID 获取金额
+async def get_balance_by_user_id(db: AsyncSession, user_id: int):
+    user = await get_user_by_id(db, user_id)
+    if user:
+        return user.balance
+    return None
+
+# 根据用户 ID 获取已提现金额
+async def get_withdraw_amount_by_user_id(db: AsyncSession, user_id: int):
+    user = await get_user_by_id(db, user_id)
+    if user:
+        return user.withdraw_amount
+    return None
+
+# 根据用户 ID 获取邀请的用户名的字典
+async def get_invited_users_by_user_id(db: AsyncSession, user_id: int):
+    user = await get_user_by_id(db, user_id)
+    if user:
+        return user.invited_user_names
+    return None
+
+# 修改其邀请人的余额
+async def add_inviter_recharge_amount_and_balance(db: AsyncSession, user_id: int, amount: float):
+    user = await get_user_by_id(db, user_id)
+    if user and user.invitee_id != 0:
+        inviter = await get_user_by_id(db, user.invitee_id)
+        if inviter:
+            # 更新邀请人的 recharge_amount
+            invited_user_entry = inviter.invited_user_names.get(user.username)
+            if invited_user_entry:
+                invited_user_entry["recharge_amount"] += amount
+            else:
+                inviter.invited_user_names[user.username] = {"recharge_amount": amount}
+            
+            # 更新邀请人的余额
+            await add_user_balance_by_id(db, inviter.id, amount)
+            
+            await db.commit()
+
+
+
+
+
 
 # 查询卡密码是多少
 async def get_activation_code(db: AsyncSession, activation_code: str):
@@ -120,11 +175,11 @@ async def get_flexible_data(db: AsyncSession, user_id: int) -> dict:
     if user:
         return user.flexible_data
 
-# 查询邀请过的人的id
-async def get_invited_user_ids(db: AsyncSession, user_id: int) -> list:
-    user = await get_user_by_id(db, user_id)
-    if user:
-        return user.invited_user_ids
+# # 查询邀请过的人的id
+# async def get_invited_user_ids(db: AsyncSession, user_id: int) -> list:
+#     user = await get_user_by_id(db, user_id)
+#     if user:
+#         return user.invited_user_ids
     
     
     

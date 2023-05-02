@@ -80,8 +80,10 @@ class utils :
         return SECRET_KEY
 
     @staticmethod
-    def generate_int32_digit_number():
-        return random.randint(1, 2**31 - 1)
+    def  generate_random_digit_number(length):
+        min_value = 10 ** (length - 1)
+        max_value = (10 ** length) - 1
+        return random.randint(min_value, max_value)
     
     @staticmethod
     def generate_alphanumeric_string(length: int) -> str:

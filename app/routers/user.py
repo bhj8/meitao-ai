@@ -1,9 +1,9 @@
-import datetime
+import re
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.crud import get_flexible_data, get_invited_user_ids, get_membership_expiration, get_used_card_codes, update_membership_expiration, update_membership_expiration_with_activation_code
+from app.db.crud import add_inviter_recharge_amount_and_balance, add_user_balance_by_id, get_balance_by_user_id, get_flexible_data, get_invited_users_by_user_id, get_membership_expiration, get_used_card_codes, get_withdraw_amount_by_user_id, update_membership_expiration_with_activation_code
 
 from app.db.database import get_db
 from app.schemas.user import UserCreate
@@ -35,7 +35,16 @@ async def register_user(user: UserCreate, request: Request, db: AsyncSession = D
                     "status": ErrorCode.USER_ALREADY_EXISTS,
                     "message": ErrorMessage.USER_ALREADY_EXISTS,
                 },
-            )
+)
+        # 检查 user.invitee_id 是否为9位纯数字
+        def validate_inviter_id(id: str):
+            return re.match(r'^\d{9}$', id) is not None
+
+        if not validate_inviter_id(user.invitee_id):
+            user.invitee_id = "0"
+            
+            
+            
         await create_user(db, user)
         registered_ips[client_ip] = True
         return JSONResponse(status_code=status.HTTP_200_OK, content={"status": 'Success'})
@@ -48,8 +57,25 @@ async def register_user(user: UserCreate, request: Request, db: AsyncSession = D
                 "message": ErrorMessage.INVALID_INPUT,
             },
         )
-        
-        
+
+
+
+#返回用户的id
+@router.post("/get_user_id", response_class=JSONResponse)
+async def get_user_id(token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
+    user_id = int(token_data["sub"])
+    return JSONResponse(content={"status": "Success", "user_id": str(user_id)})
+
+# 根据id查询余额
+@router.post("/get_user_balance", response_class=JSONResponse)
+async def get_user_balance(token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
+    user_id = int(token_data["sub"])
+    balance = await get_balance_by_user_id(db, user_id)
+    if balance is not None:
+        return JSONResponse(content={"status": "Success", "balance": str(balance)})
+    else:
+        return JSONResponse(content={"status": "Error", "message": "User not found"}, status_code=404)
+
         
 # 1. 查询会员到期时间
 @router.post("/get_membership_expiration", response_class=JSONResponse)
@@ -87,12 +113,43 @@ async def get_user_flexible_data(token_data: dict = Depends(verify_token), db: A
     flexible_data = await get_flexible_data(db, user_id)
     return JSONResponse(content={"status": "Success", "flexible_data": flexible_data})
 
-# 5. 查询邀请过的人的id
-@router.post("/invited_user_ids", response_class=JSONResponse)
-async def get_user_invited_ids(token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
+# # 5. 查询邀请过的人的id
+# @router.post("/invited_user_ids", response_class=JSONResponse)
+# async def get_user_invited_ids(token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
+#     user_id = int(token_data["sub"])
+#     invited_ids = await get_invited_user_ids(db, user_id)
+#     return JSONResponse(content={"status": "Success", "invited_user_ids": invited_ids})
+
+
+
+# 1. 通过用户 ID 查询其邀请的用户信息（invited_user_names 字段）
+@router.post("/invited_user_names", response_class=JSONResponse)
+async def get_invited_user_names(token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
     user_id = int(token_data["sub"])
-    invited_ids = await get_invited_user_ids(db, user_id)
-    return JSONResponse(content={"status": "Success", "invited_user_ids": invited_ids})
+    invited_users = await get_invited_users_by_user_id(db, user_id)
+    return JSONResponse(content={"status": "Success", "invited_user_names_dic": invited_users})
+
+# 2. 通过用户 ID 和金额参数更新用户余额
+@router.put("/add_balance", response_class=JSONResponse)
+async def add_balance(amount: float, token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
+    user_id = int(token_data["sub"])
+    await add_user_balance_by_id(db, user_id, amount)
+    return JSONResponse(content={"status": "Success", "message": "User balance updated"})
+
+# 3. 查询用户已提现金额
+@router.post("/withdraw_amount", response_class=JSONResponse)
+async def get_withdraw_amount(token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
+    user_id = int(token_data["sub"])
+    withdraw_amount = await get_withdraw_amount_by_user_id(db, user_id)
+    return JSONResponse(content={"status": "Success", "withdraw_amount": withdraw_amount})
+
+# 4. 通过用户 ID 和金额参数查找其邀请人，并更新其邀请人的 "recharge_amount" 和余额
+@router.put("/add_inviter_recharge_and_balance", response_class=JSONResponse)
+async def add_inviter_recharge_and_balance(amount: float, token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
+    user_id = int(token_data["sub"])
+    await add_inviter_recharge_amount_and_balance(db, user_id, amount)
+    return JSONResponse(content={"status": "Success", "message": "Inviter recharge amount and balance updated"})
+
 
 
 
