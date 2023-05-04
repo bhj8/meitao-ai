@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.crud import add_inviter_recharge_amount_and_balance, add_user_balance_by_id, get_balance_by_user_id, get_flexible_data, get_invited_users_by_user_id, get_membership_expiration, get_used_card_codes, get_withdraw_amount_by_user_id, update_membership_expiration_with_activation_code
+from app.db.crud import add_inviter_recharge_amount_and_balance, add_user_balance_by_id, get_balance_by_user_id, get_flexible_data, get_invited_users_by_user_id, get_membership_expiration, get_used_card_codes, get_withdraw_amount_by_user_id, update_membership_expiration_with_activation_code, update_membership_expiration_with_hours
 
 from app.db.database import get_db
 from app.schemas.user import UserCreate
@@ -19,7 +19,7 @@ registered_ips = {}
 
 @router.post("/register", response_class=JSONResponse)
 async def register_user(user: UserCreate, request: Request, db: AsyncSession = Depends(get_db)):
-    client_ip = request.client.host
+    client_ip = request.headers.get("X-Real-IP") or request.headers.get("X-Forwarded-For") or request.client.host
     if client_ip in registered_ips:
         return JSONResponse(
             content={
@@ -41,11 +41,12 @@ async def register_user(user: UserCreate, request: Request, db: AsyncSession = D
             return re.match(r'^\d{9}$', id) is not None
 
         if not validate_inviter_id(user.invitee_id):
-            user.invitee_id = "0"
+            user.invitee_id = "0" 
             
-            
-            
-        await create_user(db, user)
+        mew_user = await create_user(db, user)       
+        
+        #新用户送1个小时
+        await update_membership_expiration_with_hours(db, mew_user.id, 1)
         registered_ips[client_ip] = True
         return JSONResponse(status_code=status.HTTP_200_OK, content={"status": 'Success'})
     except ValidationError as e:
@@ -142,13 +143,6 @@ async def get_withdraw_amount(token_data: dict = Depends(verify_token), db: Asyn
     user_id = int(token_data["sub"])
     withdraw_amount = await get_withdraw_amount_by_user_id(db, user_id)
     return JSONResponse(content={"status": "Success", "withdraw_amount": withdraw_amount})
-
-# 4. 通过用户 ID 和金额参数查找其邀请人，并更新其邀请人的 "recharge_amount" 和余额
-@router.put("/add_inviter_recharge_and_balance", response_class=JSONResponse)
-async def add_inviter_recharge_and_balance(amount: float, token_data: dict = Depends(verify_token), db: AsyncSession = Depends(get_db)):
-    user_id = int(token_data["sub"])
-    await add_inviter_recharge_amount_and_balance(db, user_id, amount)
-    return JSONResponse(content={"status": "Success", "message": "Inviter recharge amount and balance updated"})
 
 
 

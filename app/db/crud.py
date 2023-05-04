@@ -1,4 +1,5 @@
 import datetime
+import math
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.activation_code import ActivationCode
 from app.models.chat_session import ChatSession
@@ -74,10 +75,20 @@ async def get_invited_users_by_user_id(db: AsyncSession, user_id: int):
     return None
 
 # 修改其邀请人的余额
-async def add_inviter_recharge_amount_and_balance(db: AsyncSession, user_id: int, amount: float):
+async def add_inviter_recharge_amount_and_balance(db: AsyncSession, user_id: int, amount: float,scale: float = 0.3):
+    '''
+    :param db: 数据库
+    :param user_id: 用户 ID
+    :param amount: 充值金额(分)
+    :param scale: 返利比例
+    :return: None   
+    
+    '''
     user = await get_user_by_id(db, user_id)
     if user and user.invitee_id != 0:
         inviter = await get_user_by_id(db, user.invitee_id)
+        
+        amount = math.ceil(amount * scale * 100) / 10000
         if inviter:
             # 更新邀请人的 recharge_amount
             invited_user_entry = inviter.invited_user_names.get(user.username)
@@ -92,6 +103,28 @@ async def add_inviter_recharge_amount_and_balance(db: AsyncSession, user_id: int
             await db.commit()
 
 
+#直接增加订阅时间
+async def update_membership_expiration_with_hours(db: AsyncSession, user_id: int, hours: int):
+    # 获取用户
+    user = await get_user_by_id(db, user_id)
+
+    # 检查小时参数是否大于0
+    if hours > 0:
+        # 获取当前时间
+        now = datetime.datetime.utcnow()
+
+        # 检查会员订阅是否已过期
+        if user.membership_expiration < now:
+            # 从当前时间开始计算新的到期时间
+            user.membership_expiration = now + datetime.timedelta(hours=hours)
+        else:
+            # 从原到期时间开始计算新的到期时间
+            user.membership_expiration += datetime.timedelta(hours=hours)
+
+        # 提交更改到数据库
+        await db.commit()
+    else:
+        raise ValueError("Invalid hours value.")
 
 
 

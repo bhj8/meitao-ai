@@ -1,4 +1,3 @@
-# user.py (updated)
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -36,8 +35,9 @@ class User(Base):
 
     # 被邀请人的ID，唯一
     invitee_id = Column(Integer,default=0)
-    
 
+    # 存储已成功支付的订单号，采用JSON类型，默认为空列表
+    paid_orders = Column(JSON, default=list)
 
     # 一个灵活的存储信息的字典，以便未来在不迁移数据库的前提下，快速的存一些临时的资料
     flexible_data = Column(JSON, default=dict)

@@ -6,6 +6,7 @@ from app.routers.chatgpt import router as chat_router
 from app.routers.user import router as user_router
 from app.routers.chatgpt_fast import router as chatgpt_fast_router
 from app.routers.chat_sessions import router as chat_sessions_router
+from app.routers.orders import router as order_router
 from app.db.database import Base, engine
 from app.error_codes.custom_exception_handlers import custom_http_exception_handler
 
@@ -27,6 +28,7 @@ app.include_router(chat_router)
 app.include_router(user_router)
 app.include_router(chatgpt_fast_router)
 app.include_router(chat_sessions_router)
+app.include_router(order_router)
 
 # Register exception handlers
 app.exception_handler(HTTPException)(custom_http_exception_handler)

@@ -16,9 +16,10 @@ def get_env_variable(var_name):
     return value
 
 
-OPENAI_API_KEY = get_env_variable("OPENAI_API_KEY")
+OPENAI_API_KEYS =eval(get_env_variable("OPENAI_API_KEYS"))
 DATABASE_URL = get_env_variable("DATABASE_URL")
 SECRET_KEY = get_env_variable("SECRET_KEY")
 ALGORITHM = get_env_variable("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = 99999999
 INITIAL_USER_BALANCE = get_env_variable("INITIAL_USER_BALANCE")
+MY_PAY_AES_KEY = get_env_variable("MY_PAY_AES_KEY")

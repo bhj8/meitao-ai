@@ -18,7 +18,14 @@ from tenacity import (
 logger = logging.getLogger('myapp')
 load_dotenv()
 # openai.organization = "org-FJzlkB2FVUgCd3naiH46NQT2"
-openai.api_key = Globals.OPENAI_API_KEY
+API_KEYS = Globals.OPENAI_API_KEYS
+
+current_key_index = 0
+def update_api_key():
+    global current_key_index
+    openai.api_key = API_KEYS[current_key_index]
+    current_key_index = (current_key_index + 1) % len(API_KEYS)
+
 # Set up the OpenAI API parameters for the conversation model
 
 
@@ -27,6 +34,7 @@ openai.api_key = Globals.OPENAI_API_KEY
 
 @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=3))
 async def get_moderation(**kwargs):  # 是否有不当内容  True 有不当内容
+    update_api_key()
     moderation = await openai.Moderation.acreate(**kwargs)
     return moderation
   #moderation.results[0].flagged
@@ -37,6 +45,7 @@ async def get_moderation(**kwargs):  # 是否有不当内容  True 有不当内�
 
 @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=3))
 async def get_chat_response(**kwargs):
+    update_api_key()
     if not kwargs.get("model") or not kwargs.get("messages"):
         raise ValueError(
             "Both 'model' and 'messages' are required parameters.")
@@ -47,6 +56,7 @@ async def get_chat_response(**kwargs):
 
 @retry(stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=3))
 async def get_chat_response_stream(**kwargs):
+    update_api_key()
     messages = kwargs.get("messages")
     print(messages)
     response = await openai.ChatCompletion.acreate(stream=True, **kwargs)
