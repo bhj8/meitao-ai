@@ -6,6 +6,8 @@ from tencentcloud.common.profile.http_profile import HttpProfile
 from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
 from tencentcloud.sms.v20210111 import sms_client, models
 
+from tools.mylog import logger
+
 import Globals
 class TencentSmsSender:
     def __init__(self, region="ap-beijing"):
@@ -35,8 +37,10 @@ class TencentSmsSender:
 
         try:
             resp = self.client.SendSms(req)
+            logger.debug(resp)
             return resp.to_json_string()
         except TencentCloudSDKException as err:
+            logger.error(err)
             return str(err)
 
 # 使用方法：

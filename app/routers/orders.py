@@ -55,8 +55,8 @@ async def payment_success_callback(request: Request, callback_data: PaymentCallb
             await db.commit()
             
         with open("orders.txt", "a") as file:
-            file.write(f"用户ID: {user_id}, 用户名: {user.username}, 商品: {goods}, 金额: {amount}, 订单ID: {out_trade_no}\n")
-        logger.debug(f"用户ID: {user_id}, 用户名: {user.username}, 商品: {goods}, 金额: {amount}, 订单ID: {out_trade_no}")
+            file.write(f"用户ID: {user_id}, 用户名: {user.username}, 商品: {goods}, 金额: {amount}, 订单ID: {out_trade_no}，邀请人ID: {user.invitee_id}\n")
+        logger.debug(f"用户ID: {user_id}, 用户名: {user.username}, 商品: {goods}, 金额: {amount}, 订单ID: {out_trade_no}，邀请人ID: {user.invitee_id}")
 
         # 4. 将订单号存放在临时字典里。以便前端频繁回调检查
         # 假设已经定义了一个名为 temporary_paid_orders 的全局字典

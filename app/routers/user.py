@@ -28,15 +28,15 @@ TIME_BETWEEN_REQUESTS = timedelta(minutes=0.5)
 async def register_or_login(user: UserCreate, request: Request, db: AsyncSession = Depends(get_db)):
     
     #基于IP限制
-    client_ip = request.headers.get("X-Real-IP") or request.headers.get("X-Forwarded-For") or request.client.host
-    if client_ip in registered_ips:
-        time_since_last_request = datetime.now() - registered_ips[client_ip]
-        if time_since_last_request < TIME_BETWEEN_REQUESTS:
-            return JSONResponse(content={"status": "Error", "message": "Request limit exceeded"}, status_code=429)
-        else:
-            registered_ips[client_ip] = datetime.now()
-    else:
-        registered_ips[client_ip] = datetime.now()
+    # client_ip = request.headers.get("X-Real-IP") or request.headers.get("X-Forwarded-For") or request.client.host
+    # if client_ip in registered_ips:
+    #     time_since_last_request = datetime.now() - registered_ips[client_ip]
+    #     if time_since_last_request < TIME_BETWEEN_REQUESTS:
+    #         return JSONResponse(content={"status": "Error", "message": "Request limit exceeded"}, status_code=429)
+    #     else:
+    #         registered_ips[client_ip] = datetime.now()
+    # else:
+    #     registered_ips[client_ip] = datetime.now()
         
     # 检查验证码
     if phone_number_verification_codes.get(user.username) != user.verification_code:
@@ -151,12 +151,14 @@ async def send_verification_code(phone_number_request: PhoneNumberRequest, reque
     verification_code = random.randint(100000, 999999)
     verification_code =str(verification_code)
 
-    # Store the phone number and verification code in the temporary dictionary
-    phone_number_verification_codes[phone_number_request.phone_number] = verification_code
 
     try:
         # Call the send_sms method from your SMS sender class
         api_tx_sms.send_sms(phone_number_request.phone_number, [str(verification_code)])
+        
+        #成功了再改验证码信息
+        # Store the phone number and verification code in the temporary dictionary
+        phone_number_verification_codes[phone_number_request.phone_number] = verification_code
         return JSONResponse(content={"status": "Success", "message": "Verification code sent"})
     except Exception as e:
         logger.error(f"Error sending SMS: {e}")
