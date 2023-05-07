@@ -3,6 +3,7 @@ downloaded_images/
 once_gift_key/
 werobot_session.sqlite3
 path_to_key/
+*.db
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
