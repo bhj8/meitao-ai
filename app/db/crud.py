@@ -329,3 +329,24 @@ async def create_activation_code(db: AsyncSession, duration_in_hours: int, usage
     await db.refresh(new_activation_code)
 
     return [activation_code_str,duration_in_hours,usage_limit]
+
+
+# 删除用户，超级危险啊。。。别乱用啊！！！！！
+async def delete_user_by_username(db: AsyncSession, username: str):
+    '''
+    删除用户，超级危险啊。。。别乱用啊！！！！！
+    
+    username: 用户名(手机号)
+    
+    '''
+    stmt = select(User).where(User.username == username)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if user:
+        # 删除与该用户关联的所有聊天会话
+        delete_stmt = ChatSession.__table__.delete().where(ChatSession.user_id == user.id)
+        await db.execute(delete_stmt)
+
+        await db.delete(user)
+        await db.commit()

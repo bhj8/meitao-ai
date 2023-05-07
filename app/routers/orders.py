@@ -12,7 +12,7 @@ from app.error_codes.error_codes import ErrorCode, ErrorMessage
 from app.schemas.orders import PlanNameResponse
 from app.security.rate_limiter import rate_limiter
 from tools.my_crypt import decrypt_message, encrypt_message
-from tools.myutils import utils
+from tools.mylog import logger
 import Globals
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
@@ -53,6 +53,10 @@ async def payment_success_callback(request: Request, callback_data: PaymentCallb
         if user:
             user.paid_orders.append(out_trade_no)
             await db.commit()
+            
+        with open("orders.txt", "a") as file:
+            file.write(f"用户ID: {user_id}, 用户名: {user.username}, 商品: {goods}, 金额: {amount}, 订单ID: {out_trade_no}\n")
+        logger.debug(f"用户ID: {user_id}, 用户名: {user.username}, 商品: {goods}, 金额: {amount}, 订单ID: {out_trade_no}")
 
         # 4. 将订单号存放在临时字典里。以便前端频繁回调检查
         # 假设已经定义了一个名为 temporary_paid_orders 的全局字典

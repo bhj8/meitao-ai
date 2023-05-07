@@ -1,30 +1,81 @@
+from datetime import datetime, timedelta
+import random
 import re
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import OAuth2PasswordRequestForm
 from app.db.crud import add_inviter_recharge_amount_and_balance, add_user_balance_by_id, get_balance_by_user_id, get_flexible_data, get_invited_users_by_user_id, get_membership_expiration, get_used_card_codes, get_withdraw_amount_by_user_id, update_membership_expiration_with_activation_code, update_membership_expiration_with_hours
 
 from app.db.database import get_db
+from app.routers.authentication import login_access_token, login_access_token_nopassword
 from app.schemas.user import UserCreate
 from app.security.auth import verify_token, verify_token_and_membership
+from app.security.rate_limiter import rate_limiter
 from services.user_operations import create_user, get_user_by_id, get_user_by_username
 from app.error_codes.error_codes import ErrorCode, ErrorMessage
+from tools.api_tx_sms import TencentSmsSender
+from tools.mylog import logger
 
 router = APIRouter(prefix="/user", tags=["User"])
 
 
-
 registered_ips = {}
+TIME_BETWEEN_REQUESTS = timedelta(minutes=0.5)
 
-@router.post("/register", response_class=JSONResponse)
-async def register_user(user: UserCreate, request: Request, db: AsyncSession = Depends(get_db)):
+@router.post("/register_or_login", response_class=JSONResponse)
+async def register_or_login(user: UserCreate, request: Request, db: AsyncSession = Depends(get_db)):
+    
+    #基于IP限制
     client_ip = request.headers.get("X-Real-IP") or request.headers.get("X-Forwarded-For") or request.client.host
     if client_ip in registered_ips:
+        time_since_last_request = datetime.now() - registered_ips[client_ip]
+        if time_since_last_request < TIME_BETWEEN_REQUESTS:
+            return JSONResponse(content={"status": "Error", "message": "Request limit exceeded"}, status_code=429)
+        else:
+            registered_ips[client_ip] = datetime.now()
+    else:
+        registered_ips[client_ip] = datetime.now()
+        
+    # 检查验证码
+    if phone_number_verification_codes.get(user.username) != user.verification_code:
         return JSONResponse(
             content={
-                "status": ErrorCode.IP_ALREADY_REGISTERED,
-                "message": ErrorMessage.IP_ALREADY_REGISTERED,
+                "status": ErrorCode.VERIFICATION_CODE_INCORRECT,
+                "message": ErrorMessage.VERIFICATION_CODE_INCORRECT,
+            },
+        )
+
+    # 检查用户是否存在
+    existing_user = await get_user_by_username(db, user.username)
+
+    if existing_user:
+        # 用户存在，执行登录逻辑
+        return await login_access_token_nopassword(db, username=user.username)
+    else:
+        # 用户不存在，执行注册逻辑并直接返回访问令牌
+        return await register_user(user, request, db)
+
+# @router.post("/register", response_class=JSONResponse)
+async def register_user(user: UserCreate, request: Request, db: AsyncSession = Depends(get_db)):
+    #基于IP限制
+    # client_ip = request.headers.get("X-Real-IP") or request.headers.get("X-Forwarded-For") or request.client.host
+    # if client_ip in ip_request_count:
+    #     time_since_last_request = datetime.now() - ip_request_count[client_ip]
+    #     if time_since_last_request < TIME_BETWEEN_REQUESTS:
+    #         return JSONResponse(content={"status": "Error", "message": "Request limit exceeded"}, status_code=429)
+    #     else:
+    #         ip_request_count[client_ip] = datetime.now()
+    # else:
+    #     ip_request_count[client_ip] = datetime.now()
+        
+        
+    if phone_number_verification_codes.get(user.username) != user.verification_code:
+        return JSONResponse(
+            content={
+                "status": ErrorCode.VERIFICATION_CODE_INCORRECT,
+                "message": ErrorMessage.VERIFICATION_CODE_INCORRECT,
             },
         )
     try:
@@ -43,12 +94,15 @@ async def register_user(user: UserCreate, request: Request, db: AsyncSession = D
         if not validate_inviter_id(user.invitee_id):
             user.invitee_id = "0" 
             
-        mew_user = await create_user(db, user)       
+        new_user = await create_user(db, user)       
         
+        logger.debug(f"New user created: {new_user.username}")
         #新用户送1个小时
-        await update_membership_expiration_with_hours(db, mew_user.id, 1)
-        registered_ips[client_ip] = True
-        return JSONResponse(status_code=status.HTTP_200_OK, content={"status": 'Success'})
+        await update_membership_expiration_with_hours(db, new_user.id, 1)
+         # 在注册成功后，直接生成并返回访问令牌
+        return  await login_access_token_nopassword(db, username=new_user.username)
+    
+    
     except ValidationError as e:
         error_detail = e.errors()[0]
         error_message = error_detail["msg"]
@@ -58,6 +112,62 @@ async def register_user(user: UserCreate, request: Request, db: AsyncSession = D
                 "message": ErrorMessage.INVALID_INPUT,
             },
         )
+
+
+
+
+api_tx_sms = TencentSmsSender()  # Initialize your SMS sender class
+ip_request_count = {}  # A temporary dictionary to store the IP address and count
+phone_number_verification_codes = {"15079857414":"025025"}  # A temporary dictionary to store phone numbers and their verification codes
+MAX_REQUESTS_PER_IP = 5  # Set the maximum requests per IP, you can change this value
+
+class PhoneNumberRequest(BaseModel):
+    phone_number:  str
+
+
+@router.post("/send_verification_code", response_class=JSONResponse)
+async def send_verification_code(phone_number_request: PhoneNumberRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    global ip_request_count
+    global phone_number_verification_codes
+
+    # Get the client's IP address
+    client_ip = request.headers.get("X-Real-IP") or request.headers.get("X-Forwarded-For") or request.client.host
+
+    # Remove expired requests
+    now = datetime.now()
+    if client_ip in ip_request_count:
+        ip_request_count[client_ip] = [t for t in ip_request_count[client_ip] if now - t < timedelta(hours=24)]
+
+    # Check if the IP has reached the request limit
+    if client_ip in ip_request_count and len(ip_request_count[client_ip]) >= MAX_REQUESTS_PER_IP:
+        return JSONResponse(content={"status": "Error", "message": "你的网络已达到今日最大短信限制，请明天再试"})
+
+    # Update the IP request count
+    if client_ip not in ip_request_count:
+        ip_request_count[client_ip] = []
+    ip_request_count[client_ip].append(now)
+
+    # Generate a random 6-digit verification code
+    verification_code = random.randint(100000, 999999)
+    verification_code =str(verification_code)
+
+    # Store the phone number and verification code in the temporary dictionary
+    phone_number_verification_codes[phone_number_request.phone_number] = verification_code
+
+    try:
+        # Call the send_sms method from your SMS sender class
+        api_tx_sms.send_sms(phone_number_request.phone_number, [str(verification_code)])
+        return JSONResponse(content={"status": "Success", "message": "Verification code sent"})
+    except Exception as e:
+        logger.error(f"Error sending SMS: {e}")
+        return JSONResponse(content={"status": "Error", "message": str(e)}, status_code=500)
+
+
+
+
+
+
+
 
 
 

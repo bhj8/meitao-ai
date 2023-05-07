@@ -50,6 +50,34 @@ async def login_access_token(
         headers={"Content-Type": "application/json;charset=utf-8"},
     )
 
+#千万别公开啊，超级危险啊！
+async def login_access_token_nopassword(
+    db: AsyncSession = Depends(get_db),
+    username: str = None,
+):
+    user = await get_user_by_username(db, username)
+    if not user:
+        return JSONResponse(
+            content={
+                "status": ErrorCode.INVALID_CREDENTIALS,
+                "message": ErrorMessage.INVALID_CREDENTIALS,
+            }
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = await create_access_token(
+        data={"sub": str(user.id)}, expires_delta=access_token_expires
+    )
+    return JSONResponse(
+        content={
+            "status": "Success",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # 转换为秒
+            # "scope": "your_scope",  # 可选，如果有定义范围的话
+        },
+        headers={"Content-Type": "application/json;charset=utf-8"},
+    )
+
 
 @router.post("/verify")
 async def verify_token_endpoint(request_data: VerifyTokenRequest):

@@ -12,3 +12,6 @@ asyncpg
 sqlalchemy
 alembic
 aiosqlite
+
+tencentcloud-sdk-python-sms
+tencentcloud-sdk-python
