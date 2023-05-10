@@ -11,8 +11,8 @@ async def create_tables():
 # 主函数
 async def main():
     async with AsyncSession(engine) as db:
-        # await get_activation_code(db)
-        await delete_user(db)
+        await get_activation_code(db)
+        # await delete_user(db)
 
 
 async def delete_user(db):
@@ -22,8 +22,8 @@ async def delete_user(db):
     
 #获取礼品码
 async def get_activation_code(db):
-    for _ in range(50):
-        result =  await create_activation_code(db, "24", 1)
+    for _ in range(1):
+        result =  await create_activation_code(db, "720", 1)
         print(result[0])
 
 if __name__ == "__main__":
